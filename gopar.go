@@ -2,21 +2,19 @@
 // Generalize and make it possible to call
 // MakeRunner(input chan, func, numWorkers) -> output chan.
 
-package main
-
-import (
-	"fmt"
-	"runtime"
-)
+package gopar
 
 type (
 	InputTask    interface{}
 	OutputResult interface{}
 )
 
-func MakeRunner(numWorkers int) (chan<- InputTask, <-chan OutputResult) {
+func MakeRunner(
+	inputQueue <-chan InputTask,
+	taskFun func(InputTask) OutputResult,
+	numWorkers int,
+) <-chan OutputResult {
 	var (
-		inputQueue  = make(chan InputTask, numWorkers)
 		outputQueue = make(chan OutputResult, numWorkers)
 
 		counterCh = make(chan int)
@@ -30,7 +28,7 @@ func MakeRunner(numWorkers int) (chan<- InputTask, <-chan OutputResult) {
 	// 	  and closes output channel
 	go func() {
 		for i := 0; i < numWorkers; i++ {
-			go worker(inputQueue, outputQueue, counterCh)
+			go worker(inputQueue, outputQueue, taskFun, counterCh)
 		}
 
 		for n := range counterCh {
@@ -42,12 +40,13 @@ func MakeRunner(numWorkers int) (chan<- InputTask, <-chan OutputResult) {
 		}
 	}()
 
-	return inputQueue, outputQueue
+	return outputQueue
 }
 
 func worker(
 	inputQueue <-chan InputTask,
 	outputQueue chan<- OutputResult,
+	taskFun func(InputTask) OutputResult,
 	counterCh chan<- int,
 ) {
 	// worker sends +1 to the main counter when starting, and -1 when closing.
@@ -58,31 +57,6 @@ func worker(
 
 	// Worker will
 	for i := range inputQueue {
-		// WIP, TODO figure out the task logic
-		i := i.(int)
-		var out OutputResult = i * i
-		outputQueue <- out
+		outputQueue <- taskFun(i)
 	}
-}
-
-func processOutput(outputQueue <-chan OutputResult) {
-
-	// This will create files under 'tags/...'
-	for out := range outputQueue {
-		fmt.Printf("%v\n", out.(int))
-	}
-}
-
-func main() {
-	inputQueue, outputQueue := MakeRunner(runtime.NumCPU())
-
-	go func() {
-		for i := 0; i < 20; i++ {
-			inputQueue <- InputTask(i)
-		}
-
-		close(inputQueue)
-	}()
-
-	processOutput(outputQueue)
 }
