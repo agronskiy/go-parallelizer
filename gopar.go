@@ -1,24 +1,17 @@
-// TODOs:
-// Generalize and make it possible to call
-// MakeRunner(input chan, func, numWorkers) -> output chan.
-
 package gopar
 
 type (
-	InputTask    interface{}
-	OutputResult interface{}
+	Msg interface{}
 )
 
 func MakeRunner(
-	inputQueue <-chan InputTask,
-	taskFun func(InputTask) OutputResult,
+	inputQueue <-chan Msg,
+	taskFun func(Msg) Msg,
 	numWorkers int,
-) <-chan OutputResult {
+) <-chan Msg {
 	var (
-		outputQueue = make(chan OutputResult, numWorkers)
-
-		counterCh = make(chan int)
-
+		outputQueue    = make(chan Msg, numWorkers)
+		counterCh      = make(chan int)
 		numOpenWorkers = 0
 	)
 
@@ -44,9 +37,9 @@ func MakeRunner(
 }
 
 func worker(
-	inputQueue <-chan InputTask,
-	outputQueue chan<- OutputResult,
-	taskFun func(InputTask) OutputResult,
+	inputQueue <-chan Msg,
+	outputQueue chan<- Msg,
+	taskFun func(Msg) Msg,
 	counterCh chan<- int,
 ) {
 	// worker sends +1 to the main counter when starting, and -1 when closing.
