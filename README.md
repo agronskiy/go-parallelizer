@@ -5,8 +5,10 @@ Go package that allows to perform parallelized computations using Go paradigm of
 
 Let's assume you want to build a pipeline of two consecutive steps, each being paralLelized over `N` workers.
 
-To use this simple package, all you need is to wrap those tasks into functions which take `gopar.InputTask`
-(which is just a rename of `interface{}`) and output `gopar.OutputResult`.
+To use this simple package, all you need is to wrap those tasks into functions which take `gopar.Msg`
+(which is just a rename of `interface{}`) and output `gopar.Msg`.
+
+Those can be later channeled one after another.
 
 ```go
 package main
